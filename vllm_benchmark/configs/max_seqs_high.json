@@ -1,0 +1,12 @@
+{
+  "experiment_name": "max_seqs_high",
+  "description": "并发度实验: max-num-seqs = 64 (高并发)",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 2048,
+    "gpu-memory-utilization": 0.90,
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
+    "max-num-seqs": 64
+  }
+}

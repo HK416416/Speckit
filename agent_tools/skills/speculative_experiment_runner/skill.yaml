@@ -1,0 +1,65 @@
+# Skill 配置文件: speculative_experiment_runner
+# ================================================
+# 自动化投机推理对比实验工作流
+# 基线 (Baseline) vs 投机推理 (Speculative) 性能对比
+
+name: speculative_experiment_runner
+version: "1.0.0"
+description: >
+  自动化执行投机推理对比实验流程。
+  依次运行基线实验和投机推理实验，
+  收集 TTFT / TPOT / 吞吐量指标，
+  调用 benchmark_analyzer 工具生成对比报告。
+
+author: 方向一科研实践项目
+tags:
+  - vllm
+  - speculative-decoding
+  - benchmark
+  - experiment-automation
+
+# 依赖的工具 (需在 nanobot 中注册)
+dependencies:
+  tools:
+    - benchmark_analyzer
+  scripts:
+    - "../../vllm_benchmark/vllm_server.py"
+    - "../../vllm_benchmark/benchmark.py"
+
+# 触发方式
+triggers:
+  - type: manual
+    description: 通过 Agent 对话触发: "运行投机推理对比实验"
+  - type: scheduled
+    description: 可选: 定时运行 (例如每天凌晨)
+
+# 输入参数
+input_schema:
+  type: object
+  properties:
+    baseline_config:
+      type: string
+      description: 基线实验配置文件路径
+      default: "../../vllm_benchmark/configs/baseline.json"
+    speculative_config:
+      type: string
+      description: 投机推理实验配置文件路径
+      default: "../../vllm_benchmark/configs/speculative.json"
+    num_prompts:
+      type: integer
+      description: 测试 prompt 数量
+      default: 50
+  required: []
+
+# 超时设置
+timeout:
+  total_seconds: 900          # 15 分钟总超时
+  step_seconds: 120           # 单步超时
+
+# 重试策略
+retry:
+  max_retries: 2
+  retry_delay_seconds: 10
+  retry_on:
+    - connection_error
+    - timeout_error

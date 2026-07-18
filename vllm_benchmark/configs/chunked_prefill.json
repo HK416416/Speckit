@@ -1,0 +1,12 @@
+{
+  "experiment_name": "chunked_prefill",
+  "description": "启用分块预填充 (Chunked Prefill): 将长 prompt 的 prefill 阶段切块",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 2048,
+    "gpu-memory-utilization": 0.90,
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": true,
+    "max-num-seqs": 256
+  }
+}
