@@ -1,0 +1,19 @@
+{
+  "experiment_name": "speculative_correct",
+  "description": "draft_model (0.5B) + 标准答案 Prompt: c≈0.37 + 极端确定性",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
+    "speculative-config": {
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "num_speculative_tokens": 3,
+      "method": "draft_model"
+    }
+  }
+}

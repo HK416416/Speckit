@@ -1,0 +1,18 @@
+{
+  "experiment_name": "speculative_ngram",
+  "description": "N-gram 投机解码: c≈0, 零显存开销 (vLLM ngram spec)",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
+    "speculative-config": {
+      "method": "ngram",
+      "num_speculative_tokens": 3
+    }
+  }
+}

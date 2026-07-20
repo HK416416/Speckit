@@ -6,43 +6,27 @@
 
 ## 实验设计：双基线架构
 
-| 基线 | 配置 | 用途 | `max-num-seqs` |
-|------|------|------|:---:|
-| **主基线** | `baseline.json` | 前缀缓存 / 分块预填充 / 并发梯度实验的对照组 | **16** |
-| **投机解码专属基线** | `baseline_spec.json` | 仅与投机推理组做严格单一变量对照 | **4** |
+| 基线 | 配置 | `max-num-seqs` | 用途 |
+|------|------|:---:|------|
+| **主基线** | `baseline.json` | 16 | 前缀缓存 / 分块预填充 / 并发梯度 |
+| **投机解码专属基线** | `baseline_spec.json` | 4 | 所有投机推理实验的严格对照 |
 
-### 通用参数（两条基线及所有实验共享）
+### 通用参数
 
-| 参数 | 值 |
-|------|-----|
-| `max-model-len` | 1024 |
-| `gpu-memory-utilization` | 0.80 |
-| `enforce-eager` | true |
-| `compilation-config` | `{"mode": "NONE"}` |
-| `enable-prefix-caching` | false |
-| `enable-chunked-prefill` | false |
+`max-model-len=1024, gpu-memory-utilization=0.80, enforce-eager=true, compilation-config={"mode": "NONE"}`
 
 ### 启动方式
-
-`vllm_server.py` 自动注入 `VLLM_USE_V2_MODEL_RUNNER=0` 和 `VLLM_USE_FLASHINFER_SAMPLER=0`。
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/<实验>.json
 python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/<实验>.json --num-prompts 10
 ```
 
-### 前置依赖
-
-```bash
-sudo apt update && sudo apt install -y build-essential
-pip install nvidia-cuda-nvcc-cu12
-```
-
 ---
 
-## 实验一：主基线 
+## 实验一：主基线
 
-**配置文件**：`configs/baseline.json`（seqs=16）
+**配置**：`configs/baseline.json`
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/baseline.json
@@ -51,37 +35,31 @@ python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/baseline.json
 
 ---
 
-## 实验二：投机解码专属基线 + 投机推理 
+## 实验二：投机解码专属基线 + 投机推理
 
-**原理**：draft model 预猜 + target 并行验证。**影响**：TPOT ↓↓（端侧实测 ↑，证实 draft bottleneck）。
+### 专属基线
 
-### Step 1：专属基线
-
-**配置文件**：`configs/baseline_spec.json`（seqs=4，与投机推理组参数完全一致，仅无 speculative-config）
+**配置**：`configs/baseline_spec.json`
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/baseline_spec.json
 python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/baseline_spec.json --num-prompts 10
 ```
 
-### Step 2：投机推理 
+### 投机推理 (draft_model)
 
-**配置文件**：`configs/speculative.json`（seqs=4，仅多 speculative-config）
+**配置**：`configs/speculative.json`
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative.json
 python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/speculative.json --num-prompts 10
 ```
 
-> 对比分析见 [`results/comparison_report.md`](results/comparison_report.md)
-
 ---
 
-## 实验三：前缀缓存（待完成）
+## 实验三：前缀缓存
 
-**原理**：共享前缀的请求复用 KV Cache。**影响**：TTFT ↓↓。
-
-**配置文件**：`configs/prefix_caching.json`（与主基线对齐，仅 `enable-prefix-caching: true`）
+**配置**：`configs/prefix_caching.json`（与主基线对齐，仅 `enable-prefix-caching: true`）
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/prefix_caching.json
@@ -90,11 +68,9 @@ python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/prefix_cachin
 
 ---
 
-## 实验四：分块预填充（待完成）
+## 实验四：分块预填充
 
-**原理**：将长 prompt 的 prefill 切块，避免 GPU 闲置。**影响**：并发 ↑。
-
-**配置文件**：`configs/chunked_prefill.json`（与主基线对齐，仅 `enable-chunked-prefill: true`）
+**配置**：`configs/chunked_prefill.json`（与主基线对齐，仅 `enable-chunked-prefill: true`）
 
 ```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/chunked_prefill.json
@@ -103,52 +79,135 @@ python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/chunked_prefi
 
 ---
 
-## 实验五：最大并发序列数（待完成）
+## 实验五：并发度梯度
 
-**原理**：控制同时处理的请求数。**影响**：吞吐量 ↑↑（16→64 时趋于饱和）。
+### 低并发
 
-**并发梯度**：
-
-| 等级 | seqs | 配置 | 预期行为 |
-|------|:---:|------|------|
-| 低并发（排队） | 8 | `max_seqs_low.json` | 轻微排队，TTFT 略高 |
-| **主基线（饱和）** | **16** | `baseline.json` | 无排队，GPU 充分利用 |
-| 高并发（冗余） | 64 | `max_seqs_high.json` | 远大于请求数，与 16 性能趋近 |
+**配置**：`configs/max_seqs_low.json`
 
 ```bash
-# 低并发
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/max_seqs_low.json
 python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/max_seqs_low.json --num-prompts 10
+```
 
-# 高并发
+### 高并发
+
+**配置**：`configs/max_seqs_high.json`
+
+```bash
 python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/max_seqs_high.json
 python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/max_seqs_high.json --num-prompts 10
 ```
 
-> 三组数据形成完整梯度：8 → 16 → 64，验证「并发数上升 → 吞吐量先升后稳、TTFT 先降后稳」。
+---
+
+## 实验六：轻量级投机推理优化（N-gram + 简单 Prompt）
+
+> **目标**：验证 c≈0（N-gram）和 α↑（简单 Prompt）对端侧投机推理的改善效果
+
+### 6.1 Draft Model 独立测试
+
+**配置**：`configs/draft_standalone.json`（0.5B 独立运行，计算 c 值）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/draft_standalone.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/draft_standalone.json --num-prompts 10
+```
+
+### 6.2 N-gram + 标准 Prompt
+
+**配置**：`configs/speculative_ngram.json`（c≈0，vLLM 内置 n-gram 引擎，标准 Prompt）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative_ngram.json
+python vllm_benchmark/benchmark.py \
+  --config vllm_benchmark/configs/speculative_ngram.json \
+  --prompts-file vllm_benchmark/prompts/test_prompts.jsonl --num-prompts 10
+```
+
+### 6.3 N-gram + 简单 Prompt（代码补全）
+
+**配置**：`configs/speculative_ngram_simple.json`（c≈0 + α↑，代码补全场景）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative_ngram_simple.json
+python vllm_benchmark/benchmark.py \
+  --config vllm_benchmark/configs/speculative_ngram_simple.json \
+  --prompts-file vllm_benchmark/prompts/simple_prompts.jsonl --num-prompts 10
+```
+
+### 6.4 draft_model + 简单 Prompt（代码补全）
+
+**配置**：`configs/speculative_simple.json`（0.5B draft + 代码补全 Prompt）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative_simple.json
+python vllm_benchmark/benchmark.py \
+  --config vllm_benchmark/configs/speculative_simple.json \
+  --prompts-file vllm_benchmark/prompts/simple_prompts.jsonl --num-prompts 10
+```
+
+### 6.5 N-gram + 标准答案 Prompt
+
+**配置**：`configs/speculative_ngram_correct.json`（c≈0 + 极端确定性，如 "1+1="、"The capital of France is "）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative_ngram_correct.json
+python vllm_benchmark/benchmark.py \
+  --config vllm_benchmark/configs/speculative_ngram_correct.json \
+  --prompts-file vllm_benchmark/prompts/correct_prompts.jsonl --num-prompts 10
+```
+
+### 6.6 draft_model + 标准答案 Prompt（新）
+
+**配置**：`configs/speculative_correct.json`（c≈0.37 + 极端确定性，"1+1="、"The capital of France is "）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative_correct.json
+python vllm_benchmark/benchmark.py \
+  --config vllm_benchmark/configs/speculative_correct.json \
+  --prompts-file vllm_benchmark/prompts/correct_prompts.jsonl --num-prompts 10
+```
+
+---
+
+## 实验七：全特性组合
+
+**配置**：`configs/all_features.json`
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/all_features.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/all_features.json --num-prompts 10
+```
 
 ---
 
 ## 四特性汇总
 
-| 实验 | 配置 | 基线 | 与基线的差异 | 状态 |
-|------|------|:---:|------|:---:|
-| 主基线 | `baseline.json` | — | seqs=16 | ✅ |
-| 投机解码专属基线 | `baseline_spec.json` | — | seqs=4 | 待测 |
-| 投机推理 ⭐ | `speculative.json` | baseline_spec | `+speculative-config` | ✅ |
-| 前缀缓存 | `prefix_caching.json` | baseline | `prefix-caching=true` | ⏳ |
-| 分块预填充 | `chunked_prefill.json` | baseline | `chunked-prefill=true` | ⏳ |
-| 并发度 8 | `max_seqs_low.json` | baseline | `max-num-seqs=8` | ⏳ |
-| 并发度 64 | `max_seqs_high.json` | baseline | `max-num-seqs=64` | ⏳ |
-| 全特性 | `all_features.json` | baseline_spec | 全部开启 | ⏳ |
+| 实验 | 配置 | 对照基线 | 状态 | TTFT | TPOT | 吞吐 |
+|------|------|:---:|:---:|:---:|:---:|:---:|
+| 主基线 | `baseline.json` | — | ✅ | 51ms | 17.9ms | 54.4 |
+| 投机解码专属基线 | `baseline_spec.json` | — | ✅ | 62ms | 17.9ms | 54.1 |
+| 投机推理 (draft_model) | `speculative.json` | baseline_spec | ✅ | 131ms | 84.2ms | 11.5 |
+| N-gram + 标准 | `speculative_ngram.json` | baseline_spec | ✅ | 44ms | 23.7ms | 42.4 |
+| N-gram + 代码 | `speculative_ngram_simple.json` | baseline_spec | ✅ | 31ms | 22.2ms | 44.5 |
+| draft_model + 代码 | `speculative_simple.json` | baseline_spec | ✅ | 101ms | 81.4ms | 12.0 |
+| **N-gram + 标准答案** | `speculative_ngram_correct.json` | baseline_spec | ✅ | 32ms | 22.2ms | 44.6 |
+| **draft_model + 标准答案** | `speculative_correct.json` | baseline_spec | &#9203; | — | — | — |
+| Draft 独立测试 | `draft_standalone.json` | — | ✅ c=0.37 | 43ms | 6.7ms | 143.1 |
+| 前缀缓存 | `prefix_caching.json` | baseline | ✅ | 43ms | 17.8ms | 54.7 |
+| 分块预填充 | `chunked_prefill.json` | baseline | ✅ | 46ms | 17.9ms | 54.6 |
+| 并发度 8/64 | `max_seqs_low/high.json` | baseline | ✅ | — | — | — |
+| 全特性 | `all_features.json` | baseline_spec | ✅ | 131ms | 83.3ms | 11.6 |
 
 ## 检查清单
 
 - [x] 主基线 ✅
-- [ ] 投机解码专属基线
-- [x] 投机推理 ✅
-- [ ] 前缀缓存
-- [ ] 分块预填充
-- [ ] 并发度 8 / 16(基线) / 64
-- [ ] 全特性组合
-- [x] 对比分析 ✅
+- [x] 投机解码专属基线 ✅
+- [x] 投机推理 (draft_model) ✅
+- [x] N-gram + 标准 Prompt ✅
+- [x] N-gram + 简单 Prompt ✅
+- [x] draft_model + 简单 Prompt ✅
+- [x] N-gram + 标准答案 Prompt ✅
+- [x] Draft 独立测试 ✅ c=0.37
+- [x] 全特性组合 ✅

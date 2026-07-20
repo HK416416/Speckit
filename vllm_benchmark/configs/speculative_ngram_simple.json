@@ -1,0 +1,18 @@
+{
+  "experiment_name": "speculative_ngram_simple",
+  "description": "N-gram + 简单任务: c≈0 + α>0.8, 预期端侧投机首次加速",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
+    "speculative-config": {
+      "method": "ngram",
+      "num_speculative_tokens": 3
+    }
+  }
+}

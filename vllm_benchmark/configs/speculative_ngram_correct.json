@@ -1,0 +1,18 @@
+{
+  "experiment_name": "speculative_ngram_correct",
+  "description": "N-gram + 标准答案 Prompt: c≈0 + 极端确定性",
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "vllm_args": {
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
+    "speculative-config": {
+      "method": "ngram",
+      "num_speculative_tokens": 3
+    }
+  }
+}
