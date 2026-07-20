@@ -1,6 +1,7 @@
 # 论文研读模块 (paper_notes/)
 
 > 方向一：投机推理方向 —— 4篇指定论文的精读笔记
+> **运行环境：WSL2 (Ubuntu 22.04)** ← [WSL2_SETUP.md](../WSL2_SETUP.md)
 
 ---
 

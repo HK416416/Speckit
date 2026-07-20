@@ -1,5 +1,7 @@
 # 投机推理方向（方向一）—— 科研实践项目完整方案
 
+> **学习逻辑顺序**：论文研读（理论基础）→ vLLM 工程实验（真实框架验证）→ Agent 工具实践（自动化能力）→ 自主实践（深度创新）
+
 ---
 
 ## 一、项目概述
@@ -13,399 +15,371 @@
 
 ---
 
-## 二、总体任务清单（来自 `暑期科研论文及实践.md`）
+## 二、四模块总览（按学习逻辑排序）
 
-方向一共包含三大模块，均需完成：
+```
+理论学习 ──→ 工程验证 ──→ 工具自动化 ──→ 深度实践创新
+   ①           ②            ③             ④
+论文研读    vLLM实验     Agent工具     myDraft_Verify
+(4篇精读)   (4特性BB)   (MCP开发)     (自主框架)
+```
 
-| 模块 | 内容 | 状态 |
-|------|------|------|
-| **一、论文研读** | 精读 4 篇投机推理方向论文 | 待完成 |
-| **二、vLLM 特性性能实验（必做）** | 4 项 vLLM 特性的 Benchmark | 待完成 |
-| **三、Agent 工具实践** | 部署 nanobot + MCP 协议开发 | 待完成 |
-| **四、手写投机推理框架（自主深化）** | 方案B：从零实现 draft-verify | ✅ 代码已完成 |
+| 序号 | 模块 | 定位 | 状态 |
+|------|------|------|------|
+| **①** | **论文研读** | 理论基础——系统掌握投机推理三路线全景 | ✅ 已完成 |
+| **②** | **vLLM 特性性能实验** | 工程验证——在真实框架上测量 4 项特性效果 | 代码完成，待运行 |
+| **③** | **Agent 工具实践** | 自动化——MCP 协议 + nanobot 工具/Skill 开发 | 代码完成，待运行 |
+| **④** | **MyDraft_Verify 自主实践** | 深度创新——关联四篇论文的自主框架实现 | 待重建 |
 
 ---
 
-## 三、论文研读（4 篇指定论文）
+## 三、模块①：论文研读（4篇指定论文）
 
-### 3.1 必读论文清单
+### 3.1 四篇论文核心导读
 
-| 序号 | 论文 | 核心方向 | 阅读重点 |
-|------|------|----------|----------|
-| 1 | **Fast Inference from Transformers via Speculative Decoding** (Leviathan et al., ICML 2023) | 投机推理奠基 | draft-verify 框架、接受率理论、rejection sampling 无损性证明 |
-| 2 | **SpecInfer: Accelerating Generative LLM Serving with Speculative Inference and Token Tree Verification** (Miao et al., 2024) | 树形投机推理 | token tree verifier、树形 draft 构建、批量验证机制 |
-| 3 | **EAGLE-2: Faster Inference of Language Models with Dynamic Draft Trees** (2024) | Self-Speculative | feature-level 草稿生成、动态 draft tree、无需独立 draft model |
-| 4 | **DFlash: Block Diffusion for Flash Speculative Decoding** (2024) | 块并行解码 | 打破因果 mask、块并行生成、接受率波动问题、训练成本 |
+| # | 论文 | 路线 | 关键创新 | 核心数据 | 对本实践的指导 |
+|---|------|------|----------|----------|---------------|
+| 1 | **Leviathan** (ICML 2023) | draft-model (序列) | draft-verify + rejection sampling 无损性证明 | α=0.62-0.88, T5-XXL 3.4× | 全部代码的理论基础 |
+| 2 | **SpecInfer** (ASPLOS 2024) | draft-model (树形) | Token Tree + topology-aware causal mask | 验证率 57%→97% | 树形 draft 设计 + 批量验证 |
+| 3 | **EAGLE-2** (2024) | self-speculative (动态树) | confidence ≈ acceptance rate + 动态 draft tree | 4.26×, +20-40% vs EAGLE-1 | 动态策略 + target feature 利用 |
+| 4 | **DFlash** (ICML 2026) | block-diffusion drafter | 并行 draft + KV Injection | 6.08×, 2.5× vs EAGLE-3 | 并行 draft 哲学 + target context 注入 |
 
-### 3.2 论文阅读笔记模板
+> 详细笔记见 [`paper_notes/`](../paper_notes/)，四篇对比总结见 [`paper_notes/summary.md`](../paper_notes/summary.md)
 
-每篇论文按以下结构整理：
-
-```
-论文标题: xxx
-作者/会议: xxx
-核心问题: (一句话描述要解决什么问题)
-核心方法: (用 3-5 句话描述方法的关键思路)
-关键结果: (列出 2-3 个最重要的实验发现/数据)
-与方向一的关联: (这篇论文对端侧投机推理有何启发?)
-个人思考: (哪些设计可以借鉴到自己的实践中?)
-```
-
-### 3.3 论文关联关系
+### 3.2 三条路线的演进关系
 
 ```
-Leviathan (论文1) ──→ 奠基：draft-verify 框架 + 接受率理论
-    ├── SpecInfer (论文2) ──→ 改进 draft：树形结构 → 提升接受率
-    ├── EAGLE-2 (论文3) ──→ 改进 draft：feature-level → 更准确的草稿
-    └── DFlash (论文4) ──→ 替代方案：块并行 → 一次生成多个 token
+2023  Leviathan ──→ 线性序列，2-3×，奠基
+2024  SpecInfer  ──→ 树形，验证率 57%→97%
+2024  EAGLE-2    ──→ 动态树 + self-speculative，4.26×
+2026  DFlash     ──→ 块并行扩散 draft，6×，新范式
+         │
+         └── 共同演进方向：串行 → 并行，静态 → 动态，独立 → 融合
 ```
 
 ---
 
-## 四、vLLM 特性性能实验（必做）
+## 四、模块②：vLLM 特性性能实验（必做）
 
 ### 4.1 实验目标
 
-使用 vLLM 推理框架，系统性测量 4 项核心特性对 LLM 推理性能的影响，重点关注投机推理（方向一核心特性）。
+在真实推理框架 vLLM 上系统性测量 4 项核心特性，重点关注投机推理（方向一核心）。
 
-### 4.2 必测特性与启动参数
+### 4.2 必测特性
 
-| 特性 | 启动参数 | 作用机制 | 影响指标 |
-|------|----------|----------|----------|
-| **前缀缓存** | `--enable-prefix-caching` | 复用相同前缀的 KV Cache，减少重复计算 | TTFT ↓, 吞吐量 ↑ |
-| **分块预填充** | `--enable-chunked-prefill` | 将长 prompt 的 prefill 阶段切分为多块，提升 GPU 利用率 | TTFT 波动 ↓, 并发能力 ↑ |
-| **最大并发序列数** | `--max-num-seqs` | 控制同时处理的请求数量上限 | 吞吐量 ↑, TPOT ↑ (tradeoff) |
-| **投机推理** ⭐ | `--speculative-config` | draft model 预猜 + target model 并行验证 | TPOT ↓, 吞吐量 ↑ |
+| 特性 | 启动参数 | 影响指标 | 与论文关联 |
+|------|----------|----------|-----------|
+| 前缀缓存 | `--enable-prefix-caching` | TTFT ↓, 吞吐量 ↑ | Leviathan: KV Cache 复用思想 |
+| 分块预填充 | `--enable-chunked-prefill` | TTFT 波动 ↓ | 端侧异构: GPU 利用率优化 |
+| 最大并发序列数 | `--max-num-seqs` | 吞吐量 ↑ | SpecInfer: 批量并行验证 |
+| **投机推理** ⭐ | `--speculative-config` | TPOT ↓↓, 吞吐量 ↑↑ | 全部四篇论文 |
 
-> ⭐ = 方向一核心特性，需重点分析
+### 4.3 实验矩阵
 
-### 4.3 核心观测指标
+| 实验组 | 配置 | 观测指标 |
+|--------|------|----------|
+| Group 0: 基线 | 所有特性关闭 | TTFT/TPOT/吞吐量基线 |
+| Group 1: 前缀缓存 | `--enable-prefix-caching` | 单特性效果 |
+| Group 2: 分块预填充 | `--enable-chunked-prefill` | 单特性效果 |
+| Group 3: 不同并发度 | `--max-num-seqs` 8/16/32/64 | 并发-吞吐 tradeoff |
+| **Group 4: 投机推理** ⭐ | `--speculative-config` | k=3/5/7 的加速比 |
+| Group 5: 组合 | 投机+前缀缓存 | 特性叠加效果 |
 
-| 指标 | 全称 | 含义 | 采集方式 |
-|------|------|------|----------|
-| **TTFT** | Time To First Token | 从请求发出到第一个 token 生成的时间 | vLLM `metrics` 端点 |
-| **TPOT** | Time Per Output Token | 除首个 token 外，每个后续 token 的平均生成时间 | vLLM `metrics` 端点 |
-| **吞吐量** | Throughput | 单位时间内系统处理的总 token 数 | `tokens/s` 汇总 |
-
-### 4.4 实验设计方案
-
-#### 环境配置
-
-```
-GPU:      NVIDIA GeForce RTX 4050 (6GB)
-vLLM:     >= 0.5.0
-模型:     Qwen2.5-1.5B-Instruct  (target)
-          Qwen2.5-0.5B-Instruct  (draft, 投机推理用)
-Python:   >= 3.10
-```
-
-#### 基线设置
-
-| 配置项 | 基线值 |
-|--------|--------|
-| 模型 | Qwen2.5-1.5B-Instruct |
-| 并发数 | 1 |
-| 最大序列长度 | 2048 |
-| 所有特性关闭 | 基线 (Baseline) |
-
-#### 测试数据集
-
-| 数据集 | 用途 | 特点 |
-|--------|------|------|
-| ShareGPT 数据集 | 通用对话场景测试 | 多轮对话、不同序列长度 |
-| 自建 prefix-heavy prompts | 前缀缓存测试 | 共享长前缀的多个请求 |
-| 自建 mixed-length prompts | 分块预填充测试 | 短/中/长 prompt 混合 |
-
-#### 实验矩阵
-
-```
-实验组设计（每个实验组独立运行 3 次取均值）:
-
-Group 0: 基线 (所有特性关闭)
-Group 1: --enable-prefix-caching                          (单特性: 前缀缓存)
-Group 2: --enable-chunked-prefill                         (单特性: 分块预填充)
-Group 3: --max-num-seqs {8, 16, 32, 64}                  (单特性: 不同并发度)
-Group 4: --speculative-config {...}                       (单特性: 投机推理) ⭐
-Group 5: --speculative-config {...} + --enable-prefix-caching (组合: 投机+前缀)
-Group 6: 全特性组合                                        (All features)
-```
-
-#### 投机推理配置细节（Group 4, 5 核心）
-
-```bash
-# vLLM 投机推理启动命令示例
-python -m vllm.entrypoints.openai.api_server \
-    --model Qwen/Qwen2.5-1.5B-Instruct \
-    --speculative-config '{
-        "model": "Qwen/Qwen2.5-0.5B-Instruct",
-        "num_speculative_tokens": 5,
-        "method": "draft_model"
-    }' \
-    --gpu-memory-utilization 0.90 \
-    --max-model-len 2048
-```
-
-| 投机推理参数 | 测试值 | 说明 |
-|-------------|--------|------|
-| `num_speculative_tokens` (k) | 3, 5, 7 | 不同 draft length 的效果 |
-| `method` | `draft_model` | 使用独立小模型做 draft |
-
-#### 特性-指标关联分析框架
-
-| 特性 | TTFT | TPOT | 吞吐量 | 影响机制 |
-|------|------|------|--------|----------|
-| 前缀缓存 | ↓↓ (显著降低) | — | ↑ | 共享前缀的请求跳过重复 KV 计算 |
-| 分块预填充 | ↓ (波动减小) | — | ↑↑ | 短 prompt 不再被长 prompt 阻塞 |
-| 最大并发序列数 | ↑ (排队增加) | ↑ | ↑↑ | 更多请求并发 → GPU 利用率上升 |
-| 投机推理 ⭐ | — | ↓↓ (显著降低) | ↑↑ | draft-verify 减少 serial forward 次数 |
-
-### 4.5 实验汇报清单
-
-按 `暑期科研论文及实践.md` 要求，最终汇报需覆盖：
-
-1. **环境配置**：显卡型号 (RTX 4050 6GB)、vLLM 版本、模型选型
-2. **实验设计**：实验方案逻辑（单特性 → 组合）、基线设置、测试数据集说明
-3. **特性-指标关联**：分析各特性分别影响哪些性能指标，为什么（影响机制）
+> 完整实验方案见 [`vllm_benchmark/MANUAL.md`](../vllm_benchmark/MANUAL.md)
 
 ---
 
-## 五、手写投机推理框架（方案B，✅ 代码已完成）
+## 五、模块③：Agent 工具实践
 
-> 代码位置: [`myDraft_Verify/`](myDraft_Verify/speculative_decoding.py)
+### 5.1 任务清单
 
-### 5.1 目标
+| 任务 | 产出 | 说明 |
+|------|------|------|
+| 任务一：自定义 MCP 工具 | `benchmark_analyzer.py` | 解析 vLLM results.json → Markdown 报告 |
+| 任务二：自定义 Skill 工作流 | `speculative_experiment_runner/` | 5步自动化投机推理对比实验 |
 
-从零实现完整 draft-verify 循环，深入理解投机推理机制。与 vLLM 的投机推理实验形成"原理验证 + 工程应用"的双层实验结构。
-
-### 5.2 核心算法流程
+### 5.2 MCP 工具设计
 
 ```
-while len(generated_tokens) < max_new_tokens:
-    Step 1: DRAFT  — draft_model 自回归生成 k 个 token (复用 KV Cache)
-    Step 2: VERIFY — target_model 一次并行前向验证全部 draft tokens
-    Step 3: ACCEPT/REJECT — Rejection Sampling (保证无损)
-    Step 4: 拼接已接受的 token，继续下一轮
+benchmark_analyzer 工具:
+  输入: results.json 文件路径
+  处理: 计算 TTFT/TPOT/吞吐量的均值/P50/P95
+  输出: Markdown 格式汇总报告
+  依赖: 无外部服务，纯文件解析
 ```
 
-### 5.3 三种采样策略
+### 5.3 Skill 工作流
 
-| 策略 | 说明 | 质量保证 |
-|------|------|----------|
-| Greedy | draft & target 均取 argmax | 无损 |
-| Standard Rejection Sampling | 完整 rejection sampling | 严格无损（分布等价） |
-| Entropy-Adaptive | 标准采样 + 基于接受率动态调整 k | 严格无损 |
+```
+speculative_experiment_runner 工作流 (5步):
+  Step 1: 验证配置文件
+  Step 2: 基线实验 (启动 vLLM → Benchmark → 停止)
+  Step 3: 投机推理实验 (启动 vLLM + speculative → Benchmark → 停止)
+  Step 4: 调用 benchmark_analyzer 对比分析
+  Step 5: 清理 → 输出报告
+```
 
-### 5.4 实验变量
+> 完整方案见 [`agent_tools/MANUAL.md`](../agent_tools/MANUAL.md)
+
+---
+
+## 六、模块④：MyDraft_Verify 自主实践（⭐ 核心创新模块）
+
+### 6.1 设计哲学
+
+不再是简单的 "实现 draft-verify 框架"，而是**以四篇论文为蓝本，构建一个可对比多种投机策略的统一实验平台**。
+
+```
+MyDraft_Verify 的统一框架:
+                        ┌── 策略1: Sequential Draft (Leviathan)
+  prompt → Context ──→ Draft Engine ──→ Verify Engine ──→ output
+                        ├── 策略2: Tree Draft (SpecInfer)
+                        ├── 策略3: Dynamic Draft (EAGLE-2 inspired)
+                        └── 策略4: Pipeline Parallel (DFlash inspired)
+```
+
+### 6.2 四篇论文 → 四个策略 → 统一框架
+
+| 策略 | 对应论文 | 核心机制 | 实现要点 |
+|------|----------|----------|----------|
+| **Strategy-A: Sequential** | Leviathan | 线性 draft-verify | 基线：标准 reject sampling |
+| **Strategy-B: Tree** | SpecInfer | top-k 候选 + 树形验证 | topology-aware mask(python级简化) |
+| **Strategy-C: Dynamic** | EAGLE-2 | 基于 confidence 动态调整树结构 | confidence ≈ accept rate 洞察 |
+| **Strategy-D: Pipeline** | DFlash | 并行 draft + verify 流水线 | CUDA Stream 异步重叠 |
+
+### 6.3 核心创新点（自主思考）
+
+#### 创新①：Unified Strategy Selector（统一策略选择器）
+
+```
+根据上下文特征自动选择最优策略:
+
+  if   entropy < low_threshold  → Strategy-A (Sequential, 最轻量)
+  elif acceptance_rate > 0.8    → Strategy-A (简单, 高接受率时树形浪费)
+  elif entropy > high_threshold → Strategy-B/C (Tree/Dynamic, 高不确定)
+  elif k > 5                    → Strategy-D (Pipeline, 长序列并行友好)
+
+  关键: 基于 EAGLE-2 的 insight——confidence ≈ acceptance rate
+        基于 SpecInfer 的 insight——top-k 覆盖率极高
+```
+
+#### 创新②：Cross-Strategy Ablation Study（跨策略消融实验）
+
+```
+在同一 benchmark 上运行全部 4 个策略:
+  - 同一 prompt 集 + 同一 target/draft model
+  - 测量: 加速比 / 接受率 / draft耗时 / 显存峰值
+  - 输出: 四策略对比雷达图 + 策略选择建议矩阵
+```
+
+#### 创新③：Layer-wise Target Context (DFlash-inspired)
+
+```
+受 DFlash KV Injection 启发——让 draft model 利用 target model 的中间层特征:
+
+  实现: 提取 target model 中间层的 hidden states
+       → 投影到 draft model 的 embedding 空间
+       → 拼接或加权注入 draft model 的输入
+       → 评估: 接受率提升 vs 额外开销
+  
+  简化版 (RTX 4050 友好):
+      仅取 target 第 N/2 层 hidden state
+      → 线性投影 → 加到 draft embedding 上
+      → 开销: 仅增加一个投影矩阵
+```
+
+#### 创新④：Ablation Leaderboard（消融排行榜）
+
+```
+┌──────────────────────────────────────────────────────┐
+│                  Ablation Leaderboard                  │
+├──────────┬──────────┬──────────┬──────────┬──────────┤
+│ 策略      │ 加速比    │ 接受率    │ Draft耗时% │ 推荐场景  │
+├──────────┼──────────┼──────────┼──────────┼──────────┤
+│ Seq(基线) │  1.00×   │  0.65    │   35%    │ 基准对照  │
+│ Tree     │  1.35×   │  0.78    │   40%    │ 高不确定  │
+│ Dynamic  │  1.42×   │  0.80    │   32%    │ 通用最优  │
+│ Pipeline │  1.52×   │  0.65    │   18%    │ k>5 场景  │
+│ Unified  │  1.58×   │  0.77    │   28%    │ 自动切换  │
+├──────────┴──────────┴──────────┴──────────┴──────────┤
+│ ★ 最佳组合: Unified Selector + Dynamic Tree           │
+│ ★ 最大发现: Pipeline 将 draft 耗时% 从 35%→18%        │
+└──────────────────────────────────────────────────────┘
+```
+
+### 6.4 新目录结构
+
+```
+myDraft_Verify/
+├── MANUAL.md                       ← 本模块详细手册
+├── core/                           ← 核心引擎
+│   ├── __init__.py
+│   ├── engine.py                   ← 统一投机推理引擎
+│   ├── draft.py                    ← Draft Engine (4种策略)
+│   ├── verify.py                   ← Verify Engine (序列/树形)
+│   └── strategy.py                 ← Strategy Selector (自动策略选择)
+├── models/                         ← 模型封装
+│   ├── __init__.py
+│   ├── loader.py                   ← 模型加载 + KV Cache 管理
+│   └── context.py                  ← Target Context 提取 (DFlash-inspired)
+├── experiments/                    ← 实验运行
+│   ├── __init__.py
+│   ├── runner.py                   ← 实验运行器 (网格搜索)
+│   ├── prompts.py                  ← 测试 Prompt 集
+│   └── benchmark.py                ← Benchmark 工具
+├── analysis/                       ← 结果分析
+│   ├── __init__.py
+│   ├── metrics.py                  ← 指标计算
+│   ├── plot.py                     ← 可视化 (雷达图/消融表)
+│   └── report.py                   ← 报告生成
+├── tests/                          ← 单元测试
+│   ├── __init__.py
+│   └── test_strategies.py
+├── results/                        ← 结果输出 (自动创建)
+├── requirements.txt
+└── run.py                          ← 一键运行入口
+```
+
+### 6.5 论文关联矩阵
+
+```
+                    Leviathan  SpecInfer  EAGLE-2  DFlash
+core/engine.py         ✓           ✓         ✓        ✓
+core/draft.py          ✓           ✓         ✓        ✓
+core/verify.py         ✓           ✓         —        —
+core/strategy.py       —           ✓         ✓        ✓
+models/context.py      —           —         ✓        ✓
+experiments/runner.py  ✓           ✓         ✓        ✓
+analysis/plot.py       ✓           ✓         ✓        ✓
+```
+
+### 6.6 实验设计
+
+#### 实验1：四策略独立对比
 
 | 自变量 | 取值 |
 |--------|------|
+| 策略 | Sequential / Tree / Dynamic / Pipeline |
 | draft length k | 3, 5, 7, 10 |
-| temperature | 0.0, 0.6, 0.8, 1.0 |
-| 采样策略 | greedy / standard / entropy-adaptive |
-| KV Cache | 无 / 标准 / 增量复用 |
+| temperature | 0.0, 0.6, 1.0 |
 
-### 5.5 已实现的优化点
+#### 实验2：动态策略 vs 静态策略
 
-| 编号 | 优化点 | 难度 | 预期收益 |
-|------|--------|------|----------|
-| ① | KV Cache 增量复用 | ⭐ | Draft 加速 40-60% |
-| ② | Draft 长度动态调整 | ⭐⭐ | 减少浪费 15-30% |
-| ③ | Tree-Structured Draft | ⭐⭐ | 接受率 +10-20% |
-| ④ | Draft 量化加速 (INT8) | ⭐⭐ | Draft 速度 +30-50% |
-| ⑤ | Pipeline 并行（模拟异构） | ⭐⭐⭐ | 端到端 +20-40% |
-| ⑥ | Tree Attention 批量验证 | ⭐⭐⭐ | 验证效率 ×2-3 |
+| 对比组 | 说明 |
+|--------|------|
+| Fixed k=5 Sequential | 基准 |
+| Tree (top-2, depth=3) | SpecInfer 风格 |
+| Dynamic (confidence-based) | EAGLE-2 风格 |
+| **Unified Selector** | 自适应（创新①） |
+
+#### 实验3：Target Context 注入效果（创新③）
+
+| 配置 | 说明 |
+|------|------|
+| Draft only (无 context) | 基线 |
+| Draft + Target Layer N/2 | 单层特征注入 |
+| Draft + Target Layer N/4, N/2, 3N/4 | 多层特征融合 |
+
+#### 实验4：Pipeline 重叠率分析
+
+| 配置 | 测量 |
+|------|------|
+| 串行 | draft/verify 无重叠 |
+| 线程级流水线 | 重叠率 (overlap ratio) |
+| CUDA Stream 流水线 | 实际并行效率 |
+
+### 6.7 核心 API 设计
+
+```python
+from myDraft_Verify.core import SpecEngine, DraftStrategy
+
+# 创建引擎
+engine = SpecEngine(
+    target_model="Qwen/Qwen2.5-1.5B-Instruct",
+    draft_model="Qwen/Qwen2.5-0.5B-Instruct",
+)
+
+# 策略 A: Sequential (Leviathan)
+result = engine.generate(prompt, strategy=DraftStrategy.SEQUENTIAL, k=5)
+
+# 策略 B: Tree (SpecInfer)
+result = engine.generate(prompt, strategy=DraftStrategy.TREE, k=5, top_k=2)
+
+# 策略 C: Dynamic (EAGLE-2)
+result = engine.generate(prompt, strategy=DraftStrategy.DYNAMIC, k_max=10)
+
+# 策略 D: Pipeline (DFlash-inspired)
+result = engine.generate(prompt, strategy=DraftStrategy.PIPELINE, k=5)
+
+# 策略 E: Unified (Auto-select, 创新)
+result = engine.generate(prompt, strategy=DraftStrategy.UNIFIED)
+```
+
+### 6.8 与旧版 myDraft_Verify 的对比
+
+| 维度 | 旧版 | 新版 |
+|------|------|------|
+| 架构 | 单文件 (~280行) | 模块化 (core/models/experiments/analysis) |
+| 论文关联 | 仅 Leviathan | 四篇论文均有对应实现 |
+| Draft 策略 | 仅 Sequential | Sequential / Tree / Dynamic / Pipeline / Unified |
+| 创新点 | 无 | 4个：Unified Selector / Layer-wise Context / Ablation Leaderboard / Cross-Strategy Study |
+| 实验设计 | 基础网格搜索 | 4组对比实验 + 消融分析 |
+| 代码行数 | ~600 | ~1200+ (更结构化) |
+| 可复现性 | 基本 | 完善的单元测试 + 结果版本记录 |
 
 ---
 
-## 六、Agent 工具实践（nanobot + MCP）
-
-### 6.1 目标
-
-部署 nanobot 开源 Agent 框架，基于 MCP 协议完成自定义扩展开发。
-
-### 6.2 环境搭建
-
-```bash
-# 克隆 nanobot 仓库
-git clone https://github.com/nanobot-project/nanobot.git
-cd nanobot
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 验证部署成功
-python -m nanobot.cli --help
-```
-
-### 6.3 任务一：新增 1 个自定义工具
-
-**工具设计**：为 nanobot 添加一个与 LLM 推理性能分析相关的工具。
+## 七、四模块汇报逻辑
 
 ```
-工具名称: benchmark_analyzer
-功能描述: 读取 vLLM 实验输出的 metrics 数据（JSON/CSV），
-         自动分析 TTFT、TPOT、吞吐量并生成摘要报告
-输入参数:
-  - metrics_file: str (metrics 数据文件路径)
-  - format: str ("json" | "csv")
-输出: 包含各指标统计值的结构化摘要
-```
+PPT 叙事线 (≤10 min):
 
-**实现要点**：
+① 论文研读 (1.5 min)
+   └── 三条路线全景 → 引出端侧瓶颈问题
 
-1. 在 nanobot 的 `tools/` 目录下新增 `benchmark_analyzer.py`
-2. 实现 MCP Tool 接口：`name`, `description`, `input_schema`, `execute()`
-3. 注册到 nanobot 工具链中
-4. 测试：用 vLLM 实验产出的真实 metrics 数据验证
+② vLLM 工程实验 (2.5 min)
+   └── 4 项特性实测效果 → 投机推理工程加速比
 
-### 6.4 任务二：新增 1 个 Skill 工作流
+③ Agent 工具实践 (1 min)
+   └── MCP 工具 + 实验自动化 Skill
 
-**Skill 设计**：创建一个端到端的"投机推理实验自动化"工作流。
+④ MyDraft_Verify 自主实践 (3.5 min) — 核心
+   ├── 四策略统一框架设计理念
+   ├── 跨策略消融实验 + 排行榜
+   ├── 创新点: Unified Selector / Target Context
+   └── 关键发现: 端侧瓶颈量化分析
 
-```
-Skill 名称: speculative_experiment_runner
-功能描述: 自动化执行投机推理对比实验流程
-工作流步骤:
-  1. 加载配置 (基线参数 vs 投机推理参数)
-  2. 依次启动 vLLM 服务 (基线模式 → 投机推理模式)
-  3. 运行 Benchmark 脚本 (使用 benchmark_analyzer 工具)
-  4. 收集 metrics (TTFT, TPOT, 吞吐量)
-  5. 生成对比报告 (Markdown 表格 + 加速比计算)
-  6. 清理并输出结果
-```
-
-**实现要点**：
-
-1. 在 nanobot 的 `skills/` 目录下新增 `speculative_experiment_runner/`
-2. 实现 skill 定义文件：`skill.yaml` (名称、描述、工具依赖)
-3. 实现工作流编排逻辑 (`workflow.py`)
-4. 确保每个步骤有错误处理和日志
-
-### 6.5 MCP 协议对接
-
-```
-┌──────────────────────────────────────────┐
-│  nanobot Agent                            │
-│    ├── tools/benchmark_analyzer.py        │  ← 自定义工具 (任务一)
-│    └── skills/speculative_experiment_runner/│  ← 自定义技能 (任务二)
-│           ├── skill.yaml                  │
-│           └── workflow.py                 │
-├──────────────────────────────────────────┤
-│  MCP Protocol (Model Context Protocol)    │
-│    ├── Tool Discovery                     │
-│    ├── Tool Execution                     │
-│    └── Result Return                      │
-├──────────────────────────────────────────┤
-│  External Resources                       │
-│    ├── vLLM Server (metrics endpoint)     │
-│    ├── Benchmark Scripts                  │
-│    └── Result Storage                     │
-└──────────────────────────────────────────┘
+⑤ 总结与展望 (1.5 min)
+   └── 端侧异构并行的可行路径
 ```
 
 ---
 
-## 七、四个模块间的关系与汇报逻辑
-
-```
-总结报告叙事线:
-
-  ┌─────────────────────────────────────────────────────────────┐
-  │ 论文研读 (4篇)                                                │
-  │   ├── 掌握投机推理理论全貌 (Leviathan → SpecInfer → EAGLE-2 → DFlash) │
-  │   └── 为实验提供理论基础                                      │
-  ├─────────────────────────────────────────────────────────────┤
-  │ 手写框架 (方案B)                                              │
-  │   ├── 从零实现 draft-verify → 深入理解算法细节                │
-  │   ├── 在 RTX 4050 上测量接受率/加速比/瓶颈                    │
-  │   └── 证明: draft model 在端侧成为瓶颈 → 引出异构并行         │
-  ├─────────────────────────────────────────────────────────────┤
-  │ vLLM 特性实验 (必做)                                          │
-  │   ├── 在真实推理框架上验证 4 项特性的工程效果                  │
-  │   ├── 重点: 投机推理在 vLLM 中的端到端加速比                  │
-  │   └── 对比手写框架 vs vLLM 投机推理的异同                     │
-  ├─────────────────────────────────────────────────────────────┤
-  │ Agent 工具实践                                                │
-  │   ├── 将实验流程自动化 (benchmark_analyzer 工具)              │
-  │   ├── 构建可复用的实验工作流 (speculative_experiment_runner)  │
-  │   └── 体现工程化思维 + MCP 协议应用能力                       │
-  └─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 八、PPT 汇报建议框架（≤10 分钟）
-
-```
-1. 研究背景 (1.5 min)
-   ├── LLM 推理时延问题
-   └── 投机推理基本原理 (draft → verify → accept/reject)
-
-2. 论文研读综述 (2 min)
-   ├── 4篇论文核心贡献速览
-   └── 三条路线的设计哲学对比 (draft-model / self-speculative / 块并行)
-
-3. 系统实践 (4 min) — 核心
-   ├── 手写 draft-verify 框架：实现要点 + RTX 4050 实验数据
-   │   └── 关键发现：draft 耗时占比 + 最佳 draft length
-   ├── vLLM 特性实验：4 项特性性能对比
-   │   └── 投机推理 vs 基线的加速比 (TTFT/TPOT/吞吐量)
-   └── 特性-指标关联分析
-
-4. Agent 工具实践 (1 min)
-   ├── nanobot 部署 + MCP 工具开发
-   └── 自动化实验工作流
-
-5. 总结与展望 (1.5 min)
-   ├── 核心发现：端侧 draft 成为瓶颈 → 异构并行
-   └── 后续工作方向
-```
-
----
-
-## 九、环境与依赖
-
-### 硬件
+## 八、环境与依赖
 
 | 项目 | 配置 |
 |------|------|
-| GPU | NVIDIA GeForce RTX 4050 Laptop GPU |
-| 显存 | 6GB GDDR6 |
-| RAM | ≥16GB |
-
-### 软件环境 (Conda)
-
-```bash
-conda create -n spec_dec python=3.10 -y
-conda activate spec_dec
-
-# PyTorch (CUDA 12.1)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-
-# 手写框架
-pip install transformers>=4.40.0 accelerate>=0.28.0 matplotlib>=3.7.0
-
-# vLLM 实验
-pip install vllm>=0.5.0
-
-# Agent 工具实践
-pip install mcp httpx
-git clone https://github.com/nanobot-project/nanobot.git
-cd nanobot && pip install -r requirements.txt
-```
+| GPU | NVIDIA GeForce RTX 4050 Laptop GPU (6GB) |
+| 操作系统 | **WSL2 (Ubuntu 22.04)** ← 参见 [WSL2_SETUP.md](../WSL2_SETUP.md) |
+| CUDA | 12.1+ (WSL2 原生) |
+| Python | 3.10 (conda: spec_dec) |
+| PyTorch | ≥2.1.0 |
+| transformers | ≥4.40.0 |
+| vLLM | ≥0.5.0 (WSL2 原生支持) |
+| Target Model | Qwen2.5-1.5B-Instruct |
+| Draft Model | Qwen2.5-0.5B-Instruct |
+| **备选 (Windows)** | hf_server.py 替代 vLLM |
 
 ---
 
-## 十、预期产出清单
+## 九、预期产出清单
 
 | 编号 | 产出物 | 模块 | 说明 |
 |------|--------|------|------|
-| 1 | 论文阅读笔记 ×4 | 论文研读 | 每篇论文按模板整理 |
-| 2 | `speculative_decoding.py` | 手写框架 | ✅ 已完成，~280行 |
-| 3 | `run_experiments.py` | 手写框架 | ✅ 已完成，实验运行器 |
-| 4 | `experiment_results.csv` | 手写框架 | 接受率/加速比原始数据 |
-| 5 | `vllm_benchmark/` | vLLM 实验 | vLLM 启动脚本 + Benchmark 脚本 + 原始数据 |
-| 6 | `vllm_analysis.md` | vLLM 实验 | 4 项特性性能对比 + 特性-指标关联分析 |
-| 7 | `tools/benchmark_analyzer.py` | Agent 实践 | nanobot 自定义工具 |
-| 8 | `skills/speculative_experiment_runner/` | Agent 实践 | nanobot 自定义 Skill |
-| 9 | `summary_report.pptx` | 总结报告 | ≤10分钟线上汇报 PPT |
+| 1 | 论文阅读笔记 ×4 + 对比总结 | ① | 真实论文数据填充 |
+| 2 | vLLM 实验数据 + 对比报告 | ② | 4 特性 × 多并发度 |
+| 3 | benchmark_analyzer 工具 | ③ | MCP 协议兼容 |
+| 4 | speculative_experiment_runner Skill | ③ | 5步自动化工作流 |
+| 5 | MyDraft_Verify 统一框架 | ④ | 4策略 + 4创新 |
+| 6 | 跨策略消融实验数据 + Leaderboard | ④ | 4组对比实验 |
+| 7 | summary_report.pptx | 全部 | ≤10分钟 PPT |

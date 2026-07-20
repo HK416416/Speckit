@@ -1,187 +1,154 @@
-# vLLM 特性性能实验模块 (vllm_benchmark/)
+# 模块②：LLM 特性性能实验 (vllm_benchmark/)
 
-> 方向一必做实验：在 RTX 4050 (6GB) 上测量 vLLM 4 项核心特性的性能影响
-
----
-
-## 文件结构
-
-```
-vllm_benchmark/
-├── MANUAL.md              ← 本手册：模块使用说明
-├── vllm_server.py         ← vLLM 服务启动器（支持不同特性配置）
-├── benchmark.py           ← Benchmark 工具（发送请求 + 收集指标）
-├── analyze.py             ← 结果分析工具（生成对比表格 + 图表）
-├── configs/               ← 实验配置文件
-│   ├── baseline.json      ← 基线配置（所有特性关闭）
-│   ├── prefix_caching.json
-│   ├── chunked_prefill.json
-│   ├── max_seqs.json
-│   ├── speculative.json   ← 投机推理配置 ⭐
-│   └── all_features.json  ← 全特性组合
-├── prompts/               ← 测试 Prompt 集
-│   └── test_prompts.jsonl
-├── scripts/               ← 自动化脚本
-│   ├── run_all.bat        ← Windows 一键运行
-│   └── run_all.sh         ← Linux/Mac 一键运行
-└── results/               ← 结果输出目录（自动创建）
-```
+> 方向一必做实验：在 RTX 4050 (6GB) + WSL2 上使用 vLLM 测量 4 项核心特性性能
 
 ---
 
-## 环境要求
+## 实验设计：双基线架构
 
-### 1. Conda 环境
+| 基线 | 配置 | 用途 | `max-num-seqs` |
+|------|------|------|:---:|
+| **主基线** | `baseline.json` | 前缀缓存 / 分块预填充 / 并发梯度实验的对照组 | **16** |
+| **投机解码专属基线** | `baseline_spec.json` | 仅与投机推理组做严格单一变量对照 | **4** |
 
-```powershell
-# 激活已创建的 spec_dec 环境
-conda activate spec_dec
+### 通用参数（两条基线及所有实验共享）
 
-# 确认 PyTorch CUDA 可用
-python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
-# 预期输出: CUDA: True
+| 参数 | 值 |
+|------|-----|
+| `max-model-len` | 1024 |
+| `gpu-memory-utilization` | 0.80 |
+| `enforce-eager` | true |
+| `compilation-config` | `{"mode": "NONE"}` |
+| `enable-prefix-caching` | false |
+| `enable-chunked-prefill` | false |
+
+### 启动方式
+
+`vllm_server.py` 自动注入 `VLLM_USE_V2_MODEL_RUNNER=0` 和 `VLLM_USE_FLASHINFER_SAMPLER=0`。
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/<实验>.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/<实验>.json --num-prompts 10
 ```
 
-### 2. 安装 vLLM
+### 前置依赖
 
-```powershell
-# vLLM 0.5.x 或更新版本
-pip install vllm>=0.5.0
-```
-
-### 3. 验证 GPU
-
-```powershell
-nvidia-smi
-# 预期: NVIDIA GeForce RTX 4050 Laptop GPU, 6141 MiB
+```bash
+sudo apt update && sudo apt install -y build-essential
+pip install nvidia-cuda-nvcc-cu12
 ```
 
 ---
 
-## 使用方式
+## 实验一：主基线 
 
-### 快速验证（推荐先做）
+**配置文件**：`configs/baseline.json`（seqs=16）
 
-测试 vLLM 是否能正常启动并响应请求：
-
-```powershell
-# 1. 启动 vLLM 服务 (基线配置，后台运行)
-python vllm_server.py --config configs/baseline.json
-
-# 2. 在另一个终端中运行 Benchmark
-python benchmark.py --config configs/baseline.json --num-prompts 10
-
-# 3. 分析结果
-python analyze.py --results-dir results/baseline
-```
-
-### 完整实验（所有特性逐个测试）
-
-```powershell
-# Windows: 一键运行全部实验
-scripts\run_all.bat
-
-# 或手动逐个运行每个配置
-python vllm_server.py --config configs/baseline.json
-python benchmark.py --config configs/baseline.json --num-prompts 50
-# ... 等待完成后再启动下一个配置 ...
-python vllm_server.py --config configs/speculative.json
-python benchmark.py --config configs/speculative.json --num-prompts 50
-```
-
-> **重要**：由于 RTX 4050 只有 6GB 显存，**每次只能运行一个 vLLM 实例**。实验需串行执行。
-
----
-
-## 命令行参数
-
-### vllm_server.py
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--config` | 实验配置文件路径 (JSON) | 必填 |
-| `--port` | 服务端口 | 8000 |
-| `--host` | 服务地址 | 127.0.0.1 |
-
-### benchmark.py
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--config` | 实验配置文件路径 | 必填 |
-| `--num-prompts` | 测试 prompt 数量 | 50 |
-| `--concurrency` | 并发请求数 | 1 |
-| `--output-dir` | 结果输出目录 | 自动（基于配置名） |
-| `--api-base` | vLLM API 地址 | http://127.0.0.1:8000 |
-
-### analyze.py
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `--results-dir` | 结果数据目录 | 必填 |
-| `--compare-dirs` | 多个结果目录对比 | 无 |
-| `--output` | 分析报告输出路径 | 自动 |
-
----
-
-## 配置文件说明
-
-### baseline.json（基线）
-
-```json
-{
-  "experiment_name": "baseline",
-  "model": "Qwen/Qwen2.5-1.5B-Instruct",
-  "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
-    "enable-prefix-caching": false,
-    "enable-chunked-prefill": false,
-    "max-num-seqs": 256
-  }
-}
-```
-
-### speculative.json（投机推理 ⭐ 核心）
-
-```json
-{
-  "experiment_name": "speculative",
-  "model": "Qwen/Qwen2.5-1.5B-Instruct",
-  "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
-    "speculative-config": {
-      "model": "Qwen/Qwen2.5-0.5B-Instruct",
-      "num_speculative_tokens": 5,
-      "method": "draft_model"
-    }
-  }
-}
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/baseline.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/baseline.json --num-prompts 10
 ```
 
 ---
 
-## 核心指标采集方式
+## 实验二：投机解码专属基线 + 投机推理 
 
-vLLM 提供了 `/metrics` 端点（Prometheus 格式），Benchmark 脚本会自动从中提取：
+**原理**：draft model 预猜 + target 并行验证。**影响**：TPOT ↓↓（端侧实测 ↑，证实 draft bottleneck）。
 
-| 指标 | Metrics 字段 | 含义 |
-|------|-------------|------|
-| TTFT | `vllm:time_to_first_token_seconds_sum` / `_count` | 首 token 平均延迟 |
-| TPOT | `vllm:time_per_output_token_seconds_sum` / `_count` | 每 token 平均生成时间 |
-| 吞吐量 | `vllm:generation_tokens_total` / 时间间隔 | 每秒生成 token 数 |
+### Step 1：专属基线
+
+**配置文件**：`configs/baseline_spec.json`（seqs=4，与投机推理组参数完全一致，仅无 speculative-config）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/baseline_spec.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/baseline_spec.json --num-prompts 10
+```
+
+### Step 2：投机推理 
+
+**配置文件**：`configs/speculative.json`（seqs=4，仅多 speculative-config）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/speculative.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/speculative.json --num-prompts 10
+```
+
+> 对比分析见 [`results/comparison_report.md`](results/comparison_report.md)
 
 ---
 
-## 实验执行检查清单
+## 实验三：前缀缓存（待完成）
 
-- [ ] 确认 GPU 驱动正常 (`nvidia-smi`)
-- [ ] 确认 spec_dec 环境已激活
-- [ ] 下载 Qwen2.5-1.5B 和 Qwen2.5-0.5B 模型
-- [ ] 测试基线配置 `baseline.json`
-- [ ] 测试前缀缓存 `prefix_caching.json`
-- [ ] 测试分块预填充 `chunked_prefill.json`
-- [ ] 测试不同并发度 `max_seqs.json` (--max-num-seqs 8/16/32)
-- [ ] 测试投机推理 `speculative.json` ⭐
-- [ ] 测试全特性组合 `all_features.json`
-- [ ] 运行 `analyze.py --compare-dirs` 生成对比报告
+**原理**：共享前缀的请求复用 KV Cache。**影响**：TTFT ↓↓。
+
+**配置文件**：`configs/prefix_caching.json`（与主基线对齐，仅 `enable-prefix-caching: true`）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/prefix_caching.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/prefix_caching.json --num-prompts 10
+```
+
+---
+
+## 实验四：分块预填充（待完成）
+
+**原理**：将长 prompt 的 prefill 切块，避免 GPU 闲置。**影响**：并发 ↑。
+
+**配置文件**：`configs/chunked_prefill.json`（与主基线对齐，仅 `enable-chunked-prefill: true`）
+
+```bash
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/chunked_prefill.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/chunked_prefill.json --num-prompts 10
+```
+
+---
+
+## 实验五：最大并发序列数（待完成）
+
+**原理**：控制同时处理的请求数。**影响**：吞吐量 ↑↑（16→64 时趋于饱和）。
+
+**并发梯度**：
+
+| 等级 | seqs | 配置 | 预期行为 |
+|------|:---:|------|------|
+| 低并发（排队） | 8 | `max_seqs_low.json` | 轻微排队，TTFT 略高 |
+| **主基线（饱和）** | **16** | `baseline.json` | 无排队，GPU 充分利用 |
+| 高并发（冗余） | 64 | `max_seqs_high.json` | 远大于请求数，与 16 性能趋近 |
+
+```bash
+# 低并发
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/max_seqs_low.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/max_seqs_low.json --num-prompts 10
+
+# 高并发
+python vllm_benchmark/vllm_server.py --config vllm_benchmark/configs/max_seqs_high.json
+python vllm_benchmark/benchmark.py --config vllm_benchmark/configs/max_seqs_high.json --num-prompts 10
+```
+
+> 三组数据形成完整梯度：8 → 16 → 64，验证「并发数上升 → 吞吐量先升后稳、TTFT 先降后稳」。
+
+---
+
+## 四特性汇总
+
+| 实验 | 配置 | 基线 | 与基线的差异 | 状态 |
+|------|------|:---:|------|:---:|
+| 主基线 | `baseline.json` | — | seqs=16 | ✅ |
+| 投机解码专属基线 | `baseline_spec.json` | — | seqs=4 | 待测 |
+| 投机推理 ⭐ | `speculative.json` | baseline_spec | `+speculative-config` | ✅ |
+| 前缀缓存 | `prefix_caching.json` | baseline | `prefix-caching=true` | ⏳ |
+| 分块预填充 | `chunked_prefill.json` | baseline | `chunked-prefill=true` | ⏳ |
+| 并发度 8 | `max_seqs_low.json` | baseline | `max-num-seqs=8` | ⏳ |
+| 并发度 64 | `max_seqs_high.json` | baseline | `max-num-seqs=64` | ⏳ |
+| 全特性 | `all_features.json` | baseline_spec | 全部开启 | ⏳ |
+
+## 检查清单
+
+- [x] 主基线 ✅
+- [ ] 投机解码专属基线
+- [x] 投机推理 ✅
+- [ ] 前缀缓存
+- [ ] 分块预填充
+- [ ] 并发度 8 / 16(基线) / 64
+- [ ] 全特性组合
+- [x] 对比分析 ✅

@@ -116,7 +116,7 @@ def main():
 
     # 启动 vLLM 服务（前台运行，Ctrl+C 停止）
     try:
-        subprocess.run(cmd, check=True)
+        env = os.environ.copy(); env.setdefault("VLLM_USE_V2_MODEL_RUNNER", "0"); env.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0"); nvcc_path = os.path.join(os.environ.get("CONDA_PREFIX", ""), "lib", "python3.10", "site-packages", "nvidia", "cu13"); env.setdefault("CUDA_HOME", nvcc_path); env["PATH"] = nvcc_path + "/bin:" + env.get("PATH", ""); subprocess.run(cmd, check=True, env=env)
     except KeyboardInterrupt:
         print("\n  vLLM 服务已停止.")
 

@@ -126,7 +126,7 @@ class BenchmarkRunner:
     def __init__(
         self,
         api_base: str = "http://127.0.0.1:8000",
-        model: str = "default",
+        model: str = "Qwen/Qwen2.5-1.5B-Instruct",
         max_tokens: int = 128,
     ):
         self.api_base = api_base.rstrip("/")
@@ -302,8 +302,9 @@ def main():
     print("=" * 60)
 
     # 预热: 发送一个简单请求确保服务已就绪
+    model_name = config.get("model", "Qwen/Qwen2.5-1.5B-Instruct")
     print("\n  预热检查...")
-    runner = BenchmarkRunner(api_base=args.api_base, max_tokens=args.max_tokens)
+    runner = BenchmarkRunner(api_base=args.api_base, model=model_name, max_tokens=args.max_tokens)
 
     for attempt in range(5):
         warmup = runner.send_request("Hello, how are you?")

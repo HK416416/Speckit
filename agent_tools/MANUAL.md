@@ -1,6 +1,7 @@
 # Agent 工具实践模块 (agent_tools/)
 
 > 部署 nanobot 开源 Agent 框架，基于 MCP 协议完成自定义工具和 Skill 开发
+> **运行环境：WSL2 (Ubuntu 22.04)** ← [WSL2_SETUP.md](../WSL2_SETUP.md)
 
 ---
 

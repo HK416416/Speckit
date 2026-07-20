@@ -1,12 +1,14 @@
 {
   "experiment_name": "prefix_caching",
-  "description": "启用前缀缓存 (Prefix Caching): 复用相同前缀的 KV Cache",
+  "description": "前缀缓存: 仅 enable-prefix-caching 与主基线不同",
   "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 16,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
     "enable-prefix-caching": true,
-    "enable-chunked-prefill": false,
-    "max-num-seqs": 256
+    "enable-chunked-prefill": false
   }
 }

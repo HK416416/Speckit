@@ -1,0 +1,121 @@
+{
+  "experiment_name": "draft_standalone",
+  "config": {
+    "experiment_name": "draft_standalone",
+    "description": "Draft Model 独立测试: 0.5B TPOT 基准 (用于计算 c 值)",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 1024,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 4,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": false,
+      "enable-chunked-prefill": false
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 42.51,
+    "avg_tpot_ms": 6.65,
+    "p50_ttft_ms": 44.28,
+    "p95_ttft_ms": 56.06,
+    "avg_throughput_tps": 143.12
+  },
+  "per_request": [
+    {
+      "id": "dc74535b",
+      "ttft_ms": 31.28,
+      "tpot_ms": 6.76,
+      "total_ms": 890.51,
+      "completion_tokens": 127,
+      "tokens_per_second": 142.61,
+      "error": null
+    },
+    {
+      "id": "3a1b28c7",
+      "ttft_ms": 56.06,
+      "tpot_ms": 6.63,
+      "total_ms": 878.17,
+      "completion_tokens": 124,
+      "tokens_per_second": 141.2,
+      "error": null
+    },
+    {
+      "id": "f5bf7831",
+      "ttft_ms": 45.43,
+      "tpot_ms": 6.48,
+      "total_ms": 875.07,
+      "completion_tokens": 128,
+      "tokens_per_second": 146.27,
+      "error": null
+    },
+    {
+      "id": "85655cbb",
+      "ttft_ms": 43.53,
+      "tpot_ms": 6.83,
+      "total_ms": 876.33,
+      "completion_tokens": 122,
+      "tokens_per_second": 139.22,
+      "error": null
+    },
+    {
+      "id": "2bb4a6b1",
+      "ttft_ms": 26.53,
+      "tpot_ms": 6.76,
+      "total_ms": 858.05,
+      "completion_tokens": 123,
+      "tokens_per_second": 143.35,
+      "error": null
+    },
+    {
+      "id": "2f80e86c",
+      "ttft_ms": 46.32,
+      "tpot_ms": 6.55,
+      "total_ms": 884.38,
+      "completion_tokens": 128,
+      "tokens_per_second": 144.73,
+      "error": null
+    },
+    {
+      "id": "8d8f36e0",
+      "ttft_ms": 44.28,
+      "tpot_ms": 6.81,
+      "total_ms": 881.79,
+      "completion_tokens": 123,
+      "tokens_per_second": 139.49,
+      "error": null
+    },
+    {
+      "id": "8d193212",
+      "ttft_ms": 43.73,
+      "tpot_ms": 6.6,
+      "total_ms": 875.9,
+      "completion_tokens": 126,
+      "tokens_per_second": 143.85,
+      "error": null
+    },
+    {
+      "id": "8cad1273",
+      "ttft_ms": 45.31,
+      "tpot_ms": 6.49,
+      "total_ms": 876.33,
+      "completion_tokens": 128,
+      "tokens_per_second": 146.06,
+      "error": null
+    },
+    {
+      "id": "5d78d1e0",
+      "ttft_ms": 42.6,
+      "tpot_ms": 6.59,
+      "total_ms": 872.72,
+      "completion_tokens": 126,
+      "tokens_per_second": 144.38,
+      "error": null
+    }
+  ]
+}

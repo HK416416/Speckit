@@ -3,14 +3,16 @@
   "description": "全特性组合: 前缀缓存 + 分块预填充 + 投机推理",
   "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
     "enable-prefix-caching": true,
     "enable-chunked-prefill": true,
-    "max-num-seqs": 256,
     "speculative-config": {
       "model": "Qwen/Qwen2.5-0.5B-Instruct",
-      "num_speculative_tokens": 5,
+      "num_speculative_tokens": 3,
       "method": "draft_model"
     }
   }

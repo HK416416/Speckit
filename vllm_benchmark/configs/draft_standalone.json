@@ -1,11 +1,11 @@
 {
-  "experiment_name": "max_seqs_high",
-  "description": "并发梯度: seqs=64, 远大于请求数",
-  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "experiment_name": "draft_standalone",
+  "description": "Draft Model 独立测试: 0.5B TPOT 基准 (用于计算 c 值)",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
   "vllm_args": {
     "max-model-len": 1024,
     "gpu-memory-utilization": 0.80,
-    "max-num-seqs": 64,
+    "max-num-seqs": 4,
     "enforce-eager": true,
     "compilation-config": {"mode": "NONE"},
     "enable-prefix-caching": false,

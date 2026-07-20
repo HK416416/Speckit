@@ -1,0 +1,126 @@
+{
+  "experiment_name": "all_features",
+  "config": {
+    "experiment_name": "all_features",
+    "description": "全特性组合: 前缀缓存 + 分块预填充 + 投机推理",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 1024,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 4,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": true,
+      "enable-chunked-prefill": true,
+      "speculative-config": {
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "num_speculative_tokens": 3,
+        "method": "draft_model"
+      }
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 131.02,
+    "avg_tpot_ms": 83.3,
+    "p50_ttft_ms": 111.87,
+    "p95_ttft_ms": 203.96,
+    "avg_throughput_tps": 11.56
+  },
+  "per_request": [
+    {
+      "id": "320b41ad",
+      "ttft_ms": 111.87,
+      "tpot_ms": 83.42,
+      "total_ms": 3281.91,
+      "completion_tokens": 38,
+      "tokens_per_second": 11.58,
+      "error": null
+    },
+    {
+      "id": "67fb0f5e",
+      "ttft_ms": 203.96,
+      "tpot_ms": 83.5,
+      "total_ms": 3210.08,
+      "completion_tokens": 36,
+      "tokens_per_second": 11.21,
+      "error": null
+    },
+    {
+      "id": "fc7fc858",
+      "ttft_ms": 107.8,
+      "tpot_ms": 87.2,
+      "total_ms": 4905.75,
+      "completion_tokens": 55,
+      "tokens_per_second": 11.21,
+      "error": null
+    },
+    {
+      "id": "aee6f0cd",
+      "ttft_ms": 102.35,
+      "tpot_ms": 81.68,
+      "total_ms": 4104.98,
+      "completion_tokens": 49,
+      "tokens_per_second": 11.94,
+      "error": null
+    },
+    {
+      "id": "9e2cac82",
+      "ttft_ms": 182.25,
+      "tpot_ms": 77.49,
+      "total_ms": 2519.83,
+      "completion_tokens": 29,
+      "tokens_per_second": 11.51,
+      "error": null
+    },
+    {
+      "id": "7f2e3b3a",
+      "ttft_ms": 112.92,
+      "tpot_ms": 84.2,
+      "total_ms": 4577.23,
+      "completion_tokens": 53,
+      "tokens_per_second": 11.58,
+      "error": null
+    },
+    {
+      "id": "26ae2721",
+      "ttft_ms": 108.62,
+      "tpot_ms": 81.49,
+      "total_ms": 4834.88,
+      "completion_tokens": 58,
+      "tokens_per_second": 12.0,
+      "error": null
+    },
+    {
+      "id": "b8ef73e9",
+      "ttft_ms": 174.59,
+      "tpot_ms": 88.39,
+      "total_ms": 5037.57,
+      "completion_tokens": 55,
+      "tokens_per_second": 10.92,
+      "error": null
+    },
+    {
+      "id": "705b5817",
+      "ttft_ms": 105.73,
+      "tpot_ms": 82.26,
+      "total_ms": 4630.11,
+      "completion_tokens": 55,
+      "tokens_per_second": 11.88,
+      "error": null
+    },
+    {
+      "id": "91a6183e",
+      "ttft_ms": 100.07,
+      "tpot_ms": 83.38,
+      "total_ms": 5103.21,
+      "completion_tokens": 60,
+      "tokens_per_second": 11.76,
+      "error": null
+    }
+  ]
+}

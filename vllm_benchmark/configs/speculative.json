@@ -1,13 +1,18 @@
 {
   "experiment_name": "speculative",
-  "description": "投机推理 ⭐ 方向一核心: draft model 预猜 + target model 并行验证",
+  "description": "投机推理 ⭐ 与 baseline_spec 严格单一变量对照 (seqs=4)",
   "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 4,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
+    "enable-prefix-caching": false,
+    "enable-chunked-prefill": false,
     "speculative-config": {
       "model": "Qwen/Qwen2.5-0.5B-Instruct",
-      "num_speculative_tokens": 5,
+      "num_speculative_tokens": 3,
       "method": "draft_model"
     }
   }

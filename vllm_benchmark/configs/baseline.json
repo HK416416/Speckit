@@ -1,12 +1,14 @@
 {
   "experiment_name": "baseline",
-  "description": "基线配置: 所有特性关闭",
+  "description": "主基线: 全实验通用对照 (seqs=16)",
   "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "vllm_args": {
-    "max-model-len": 2048,
-    "gpu-memory-utilization": 0.90,
+    "max-model-len": 1024,
+    "gpu-memory-utilization": 0.80,
+    "max-num-seqs": 16,
+    "enforce-eager": true,
+    "compilation-config": {"mode": "NONE"},
     "enable-prefix-caching": false,
-    "enable-chunked-prefill": false,
-    "max-num-seqs": 256
+    "enable-chunked-prefill": false
   }
 }
