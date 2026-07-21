@@ -1,0 +1,121 @@
+{
+  "experiment_name": "baseline_spec",
+  "config": {
+    "experiment_name": "baseline_spec",
+    "description": "投机解码专属基线: 对比组2对照 (seqs=4, gpu=0.80, max-len=512)",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 512,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 4,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": false,
+      "enable-chunked-prefill": false
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 127.78,
+    "avg_tpot_ms": 43.92,
+    "p50_ttft_ms": 102.95,
+    "p95_ttft_ms": 214.3,
+    "avg_throughput_tps": 22.33
+  },
+  "per_request": [
+    {
+      "id": "cbed5e32",
+      "ttft_ms": 89.08,
+      "tpot_ms": 43.37,
+      "total_ms": 3473.27,
+      "completion_tokens": 78,
+      "tokens_per_second": 22.46,
+      "error": null
+    },
+    {
+      "id": "cb1189ee",
+      "ttft_ms": 164.88,
+      "tpot_ms": 43.75,
+      "total_ms": 3360.63,
+      "completion_tokens": 73,
+      "tokens_per_second": 21.72,
+      "error": null
+    },
+    {
+      "id": "1b058315",
+      "ttft_ms": 97.91,
+      "tpot_ms": 44.4,
+      "total_ms": 5604.15,
+      "completion_tokens": 125,
+      "tokens_per_second": 22.3,
+      "error": null
+    },
+    {
+      "id": "ad6f8240",
+      "ttft_ms": 89.25,
+      "tpot_ms": 45.81,
+      "total_ms": 5677.73,
+      "completion_tokens": 123,
+      "tokens_per_second": 21.66,
+      "error": null
+    },
+    {
+      "id": "3fc88d1e",
+      "ttft_ms": 136.39,
+      "tpot_ms": 42.65,
+      "total_ms": 5510.64,
+      "completion_tokens": 127,
+      "tokens_per_second": 23.05,
+      "error": null
+    },
+    {
+      "id": "df5dfff5",
+      "ttft_ms": 214.3,
+      "tpot_ms": 42.82,
+      "total_ms": 5567.55,
+      "completion_tokens": 126,
+      "tokens_per_second": 22.63,
+      "error": null
+    },
+    {
+      "id": "f5b4da29",
+      "ttft_ms": 102.95,
+      "tpot_ms": 43.89,
+      "total_ms": 5457.56,
+      "completion_tokens": 123,
+      "tokens_per_second": 22.54,
+      "error": null
+    },
+    {
+      "id": "05e6d8b6",
+      "ttft_ms": 184.37,
+      "tpot_ms": 43.58,
+      "total_ms": 5544.91,
+      "completion_tokens": 124,
+      "tokens_per_second": 22.36,
+      "error": null
+    },
+    {
+      "id": "63c69702",
+      "ttft_ms": 100.94,
+      "tpot_ms": 44.33,
+      "total_ms": 5642.95,
+      "completion_tokens": 126,
+      "tokens_per_second": 22.33,
+      "error": null
+    },
+    {
+      "id": "9e4415e9",
+      "ttft_ms": 97.75,
+      "tpot_ms": 44.55,
+      "total_ms": 5667.25,
+      "completion_tokens": 126,
+      "tokens_per_second": 22.23,
+      "error": null
+    }
+  ]
+}

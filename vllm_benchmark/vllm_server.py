@@ -66,6 +66,12 @@ def build_vllm_command(config: Dict, host: str, port: int) -> list:
     if "max-num-seqs" in vllm_args:
         cmd.extend(["--max-num-seqs", str(vllm_args["max-num-seqs"])])
 
+    # 执行模式（enforce-eager 关闭 CUDA Graph，对 RTX 4050 6GB 至关重要）
+    if vllm_args.get("enforce-eager"):
+        cmd.append("--enforce-eager")
+    if "compilation-config" in vllm_args:
+        cmd.extend(["--compilation-config", json.dumps(vllm_args["compilation-config"])])
+
     # 特性开关
     if vllm_args.get("enable-prefix-caching"):
         cmd.append("--enable-prefix-caching")

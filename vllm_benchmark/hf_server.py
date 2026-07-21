@@ -34,7 +34,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 class ModelServer:
     def __init__(self, model_name="Qwen/Qwen2.5-1.5B-Instruct",
                  device="cuda", enable_prefix_caching=False):
-        print(f"[HFSever] 加载 Target: {model_name}")
+        print(f"[HFServer] 加载 Target: {model_name}")
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name, torch_dtype=torch.float16 if device == "cuda" else torch.float32,
             device_map="auto" if device == "cuda" else None, trust_remote_code=True)
@@ -48,7 +48,7 @@ class ModelServer:
         print(f"  加载完成. 设备: {device}")
 
     def enable_speculative(self, draft_model_name):
-        print(f"[HFSever] 加载 Draft: {draft_model_name}")
+        print(f"[HFServer] 加载 Draft: {draft_model_name}")
         self.draft_model = AutoModelForCausalLM.from_pretrained(
             draft_model_name, torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
             device_map="auto" if self.device == "cuda" else None, trust_remote_code=True)
@@ -58,19 +58,31 @@ class ModelServer:
         print("  投机推理模式已启用")
 
     @torch.no_grad()
-    def generate(self, prompt, max_tokens=128, temperature=0.0, speculative_tokens=0):
+    def generate_stream(self, prompt, max_tokens=128, temperature=0.0, speculative_tokens=0):
+        """逐 token 生成的迭代器。yield (token_id, is_first, is_last)
+        调用方通过此迭代器实时获取每个 token，用于精确计时 TTFT/TPOT。"""
         if speculative_tokens > 0 and self.draft_model is not None:
-            return self._speculative_generate(prompt, max_tokens, temperature, speculative_tokens)
-        return self._autoregressive_generate(prompt, max_tokens, temperature)
+            yield from self._speculative_generate_stream(prompt, max_tokens, temperature, speculative_tokens)
+        else:
+            yield from self._autoregressive_generate_stream(prompt, max_tokens, temperature)
 
     @torch.no_grad()
-    def _autoregressive_generate(self, prompt, max_tokens, temperature):
-        """标准自回归生成（基线）"""
+    def generate(self, prompt, max_tokens=128, temperature=0.0, speculative_tokens=0):
+        """批量生成（非流式），直接返回完整文本。"""
+        tokens = []
+        for token_id, _, _ in self.generate_stream(prompt, max_tokens, temperature, speculative_tokens):
+            tokens.append(token_id)
+        prompt_ids = self.tokenizer.encode(prompt)
+        full_ids = prompt_ids + tokens
+        return self.tokenizer.decode(full_ids, skip_special_tokens=True)
+
+    @torch.no_grad()
+    def _autoregressive_generate_stream(self, prompt, max_tokens, temperature):
+        """标准自回归生成（流式）—— 逐 token yield，精确反映真实模型推理耗时"""
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
-        generated = input_ids.clone()
         past_kv = None
 
-        for _ in range(max_tokens):
+        for step in range(max_tokens):
             current = input_ids if past_kv is None else input_ids[:, -1:]
             outputs = self.model(current, past_key_values=past_kv, use_cache=True)
             past_kv = outputs.past_key_values
@@ -80,16 +92,16 @@ class ModelServer:
             else:
                 probs = F.softmax(logits / temperature, dim=-1)
                 nxt = int(torch.multinomial(probs, 1).item())
-            generated = torch.cat([generated, torch.tensor([[nxt]], device=self.device)], dim=1)
             input_ids = torch.tensor([[nxt]], device=self.device)
+            is_last = (step == max_tokens - 1) or (nxt == self.tokenizer.eos_token_id)
+            yield (nxt, step == 0, is_last)
             if nxt == self.tokenizer.eos_token_id:
                 break
 
-        return self.tokenizer.decode(generated[0], skip_special_tokens=True)
-
     @torch.no_grad()
-    def _speculative_generate(self, prompt, max_tokens, temperature, k):
-        """投机推理模式：draft-verify + rejection sampling（Leviathan ICML 2023）"""
+    def _speculative_generate_stream(self, prompt, max_tokens, temperature, k):
+        """投机推理模式（流式）：draft-verify + rejection sampling。
+        每个 draft-verify 周期结束后逐 token yield，token 间的验证延迟被真实反映。"""
         input_ids = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
         generated_tokens: List[int] = []
 
@@ -125,6 +137,7 @@ class ModelServer:
             ctx_len = input_ids.shape[1] + len(generated_tokens)
             verify_logits = t_out.logits[0, ctx_len - 1: ctx_len - 1 + len(draft_tokens)]
 
+            prev_count = len(generated_tokens)
             for i in range(len(draft_tokens)):
                 t_probs = F.softmax(verify_logits[i] / max(temperature, 1e-6), dim=-1)
                 dt = draft_tokens[i]
@@ -144,11 +157,14 @@ class ModelServer:
                         generated_tokens.append(tbest)
                         break
 
+            # yield 本轮新生成的 token
+            for idx in range(prev_count, len(generated_tokens)):
+                token_id = generated_tokens[idx]
+                is_last = (len(generated_tokens) >= max_tokens) or (token_id == self.tokenizer.eos_token_id)
+                yield (token_id, len(generated_tokens) == 1, is_last)
+
             if generated_tokens and generated_tokens[-1] == self.tokenizer.eos_token_id:
                 break
-
-        full_ids = input_ids[0].tolist() + generated_tokens
-        return self.tokenizer.decode(full_ids, skip_special_tokens=True)
 
 
 # ─── FastAPI 服务 ────────────────────────────────────────────────────
@@ -176,37 +192,40 @@ async def completions(req: CompletionRequest):
     if server is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
-    spec_tokens = getattr(server, '_speculative_tokens', 0)
-    result_text = server.generate(
-        prompt=req.prompt, max_tokens=req.max_tokens,
-        temperature=req.temperature, speculative_tokens=spec_tokens)
-
-    # ── 用 tokenizer 精确计算 token 数 ──
-    full_ids = server.tokenizer.encode(result_text)
     prompt_ids = server.tokenizer.encode(req.prompt)
     prompt_tokens = len(prompt_ids)
-    completion_tokens = max(0, len(full_ids) - prompt_tokens)
-    generated_text = server.tokenizer.decode(full_ids[prompt_tokens:], skip_special_tokens=True)
+    spec_tokens = getattr(server, '_speculative_tokens', 0)
 
     if req.stream:
-        # 逐 token 流式输出 → benchmark.py 的 stream 计时能精确获取 TTFT/TPOT
+        # 真正的逐 token 流式输出 — 每个 token 在模型生成后立即流出
         async def stream_gen():
-            import asyncio
-            start = time.time()
-            for i in range(prompt_tokens, len(full_ids)):
-                token_text = server.tokenizer.decode([full_ids[i]], skip_special_tokens=True)
-                # 模拟真实推理的 token 间隔（让 TTFT 和 TPOT 有意义）
-                await asyncio.sleep(0.01)
+            generated_ids = []
+            for token_id, is_first, is_last in server.generate_stream(
+                prompt=req.prompt, max_tokens=req.max_tokens,
+                temperature=req.temperature, speculative_tokens=spec_tokens):
+                generated_ids.append(token_id)
+                token_text = server.tokenizer.decode([token_id], skip_special_tokens=True)
                 chunk = {
                     "id": str(uuid.uuid4())[:8],
                     "object": "text_completion",
                     "created": int(time.time()),
                     "model": req.model,
-                    "choices": [{"text": token_text, "index": 0, "finish_reason": None}],
+                    "choices": [{"text": token_text, "index": 0, "finish_reason": "stop" if is_last else None}],
                 }
                 yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                if is_last:
+                    break
             yield "data: [DONE]\n\n"
         return StreamingResponse(stream_gen(), media_type="text/event-stream")
+
+    # 非流式：一次性生成
+    result_text = server.generate(
+        prompt=req.prompt, max_tokens=req.max_tokens,
+        temperature=req.temperature, speculative_tokens=spec_tokens)
+
+    full_ids = server.tokenizer.encode(result_text)
+    completion_tokens = max(0, len(full_ids) - prompt_tokens)
+    generated_text = server.tokenizer.decode(full_ids[prompt_tokens:], skip_special_tokens=True)
 
     return {
         "id": str(uuid.uuid4())[:8],
@@ -245,7 +264,7 @@ def main():
         server.enable_speculative(args.draft_model)
         server._speculative_tokens = args.speculative_tokens
 
-    print(f"\n[HFSever] http://{args.host}:{args.port}")
+    print(f"\n[HFServer] http://{args.host}:{args.port}")
     print(f"  投机推理: {'启用 (k=' + str(getattr(server, '_speculative_tokens', 0)) + ')' if args.speculative else '关闭'}")
     print(f"  前缀缓存: {'启用' if args.enable_prefix_caching else '关闭'}")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")

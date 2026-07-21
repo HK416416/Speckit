@@ -1,11 +1,11 @@
 {
   "experiment_name": "speculative",
-  "description": "投机推理 ⭐ 与 baseline_spec 严格单一变量对照 (seqs=4)",
+  "description": "投机推理 ⭐ 双模型 (seqs=2, gpu=0.80, max-len=512)",
   "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "vllm_args": {
-    "max-model-len": 1024,
+    "max-model-len": 512,
     "gpu-memory-utilization": 0.80,
-    "max-num-seqs": 4,
+    "max-num-seqs": 2,
     "enforce-eager": true,
     "compilation-config": {"mode": "NONE"},
     "enable-prefix-caching": false,

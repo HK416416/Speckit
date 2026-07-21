@@ -1,0 +1,126 @@
+{
+  "experiment_name": "speculative_correct",
+  "config": {
+    "experiment_name": "speculative_correct",
+    "description": "双模型 + 标准答案 Prompt: c≈0.37 + 极端确定性 (seqs=2, gpu=0.80, max-len=512)",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 512,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 2,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": false,
+      "enable-chunked-prefill": false,
+      "speculative-config": {
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "num_speculative_tokens": 3,
+        "method": "draft_model"
+      }
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 165.99,
+    "avg_tpot_ms": 146.08,
+    "p50_ttft_ms": 160.74,
+    "p95_ttft_ms": 234.99,
+    "avg_throughput_tps": 6.8
+  },
+  "per_request": [
+    {
+      "id": "c4dad206",
+      "ttft_ms": 170.31,
+      "tpot_ms": 147.66,
+      "total_ms": 8882.14,
+      "completion_tokens": 60,
+      "tokens_per_second": 6.76,
+      "error": null
+    },
+    {
+      "id": "05caf224",
+      "ttft_ms": 139.23,
+      "tpot_ms": 145.2,
+      "total_ms": 4504.3,
+      "completion_tokens": 30,
+      "tokens_per_second": 6.66,
+      "error": null
+    },
+    {
+      "id": "05292718",
+      "ttft_ms": 191.08,
+      "tpot_ms": 147.42,
+      "total_ms": 6235.48,
+      "completion_tokens": 42,
+      "tokens_per_second": 6.74,
+      "error": null
+    },
+    {
+      "id": "d7f63939",
+      "ttft_ms": 138.59,
+      "tpot_ms": 148.25,
+      "total_ms": 7402.9,
+      "completion_tokens": 50,
+      "tokens_per_second": 6.75,
+      "error": null
+    },
+    {
+      "id": "824c59f8",
+      "ttft_ms": 160.74,
+      "tpot_ms": 145.8,
+      "total_ms": 8033.92,
+      "completion_tokens": 55,
+      "tokens_per_second": 6.85,
+      "error": null
+    },
+    {
+      "id": "06ea1c14",
+      "ttft_ms": 147.75,
+      "tpot_ms": 146.02,
+      "total_ms": 8470.9,
+      "completion_tokens": 58,
+      "tokens_per_second": 6.85,
+      "error": null
+    },
+    {
+      "id": "5efe01c9",
+      "ttft_ms": 157.78,
+      "tpot_ms": 145.07,
+      "total_ms": 6686.07,
+      "completion_tokens": 46,
+      "tokens_per_second": 6.88,
+      "error": null
+    },
+    {
+      "id": "efc3c640",
+      "ttft_ms": 161.45,
+      "tpot_ms": 145.36,
+      "total_ms": 6993.65,
+      "completion_tokens": 48,
+      "tokens_per_second": 6.86,
+      "error": null
+    },
+    {
+      "id": "57241a72",
+      "ttft_ms": 158.02,
+      "tpot_ms": 145.16,
+      "total_ms": 6109.68,
+      "completion_tokens": 42,
+      "tokens_per_second": 6.87,
+      "error": null
+    },
+    {
+      "id": "9948fa4b",
+      "ttft_ms": 234.99,
+      "tpot_ms": 144.89,
+      "total_ms": 6899.98,
+      "completion_tokens": 47,
+      "tokens_per_second": 6.81,
+      "error": null
+    }
+  ]
+}

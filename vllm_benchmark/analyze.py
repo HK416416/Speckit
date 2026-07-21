@@ -70,6 +70,15 @@ def generate_report(
 
     # ── 加速比分析 ──
     if baseline_tps > 0:
+        # ── 按名称查找基线实验（而非假设 experiments[0] 是基线）──
+        baseline_data = None
+        for name, data in experiments:
+            if "baseline" in name.lower():
+                baseline_data = data
+                break
+        baseline_ttft = baseline_data.get("summary", {}).get("avg_ttft_ms", 1) if baseline_data else 1
+        baseline_tpot = baseline_data.get("summary", {}).get("avg_tpot_ms", 1) if baseline_data else 1
+
         lines.append("## 2. 加速比分析 (vs 基线)")
         lines.append("")
         lines.append("| 实验配置 | 吞吐量 (tok/s) | 加速比 | TTFT 变化 | TPOT 变化 |")
@@ -79,8 +88,6 @@ def generate_report(
             tps = s.get("avg_throughput_tps", 0.0)
             speedup = tps / baseline_tps if baseline_tps > 0 else 1.0
 
-            baseline_ttft = experiments[0][1].get("summary", {}).get("avg_ttft_ms", 1) if experiments else 1
-            baseline_tpot = experiments[0][1].get("summary", {}).get("avg_tpot_ms", 1) if experiments else 1
             ttft_change = (s.get("avg_ttft_ms", 0) - baseline_ttft) / baseline_ttft * 100 if baseline_ttft else 0
             tpot_change = (s.get("avg_tpot_ms", 0) - baseline_tpot) / baseline_tpot * 100 if baseline_tpot else 0
 

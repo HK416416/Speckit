@@ -205,7 +205,7 @@ class BenchmarkRunner:
         result.total_time_ms = (total_time - start_time) * 1000.0
 
         if token_count > 0:
-            result.tpot_ms = (last_token_time - first_token_time) * 1000.0 / token_count if token_count > 1 else 0.0
+            result.tpot_ms = (last_token_time - first_token_time) * 1000.0 / (token_count - 1) if token_count > 1 else 0.0
             result.completion_tokens = token_count
             result.generated_text = generated_text[:200]
             result.tokens_per_second = token_count / (result.total_time_ms / 1000.0) if result.total_time_ms > 0 else 0.0

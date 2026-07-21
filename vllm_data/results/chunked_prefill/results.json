@@ -1,0 +1,121 @@
+{
+  "experiment_name": "chunked_prefill",
+  "config": {
+    "experiment_name": "chunked_prefill",
+    "description": "分块预填充: 仅 enable-chunked-prefill 与主基线不同",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 1024,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 16,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": false,
+      "enable-chunked-prefill": true
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 116.95,
+    "avg_tpot_ms": 42.49,
+    "p50_ttft_ms": 102.9,
+    "p95_ttft_ms": 177.03,
+    "avg_throughput_tps": 23.11
+  },
+  "per_request": [
+    {
+      "id": "90edfbe8",
+      "ttft_ms": 88.84,
+      "tpot_ms": 43.3,
+      "total_ms": 3466.66,
+      "completion_tokens": 78,
+      "tokens_per_second": 22.5,
+      "error": null
+    },
+    {
+      "id": "2ae8991c",
+      "ttft_ms": 160.96,
+      "tpot_ms": 42.28,
+      "total_ms": 3247.43,
+      "completion_tokens": 73,
+      "tokens_per_second": 22.48,
+      "error": null
+    },
+    {
+      "id": "35b804ba",
+      "ttft_ms": 102.04,
+      "tpot_ms": 42.76,
+      "total_ms": 5447.24,
+      "completion_tokens": 126,
+      "tokens_per_second": 23.13,
+      "error": null
+    },
+    {
+      "id": "1adc584f",
+      "ttft_ms": 79.09,
+      "tpot_ms": 43.27,
+      "total_ms": 5314.42,
+      "completion_tokens": 122,
+      "tokens_per_second": 22.96,
+      "error": null
+    },
+    {
+      "id": "b53ade33",
+      "ttft_ms": 115.43,
+      "tpot_ms": 41.27,
+      "total_ms": 5316.07,
+      "completion_tokens": 127,
+      "tokens_per_second": 23.89,
+      "error": null
+    },
+    {
+      "id": "0e129459",
+      "ttft_ms": 168.32,
+      "tpot_ms": 42.48,
+      "total_ms": 5479.0,
+      "completion_tokens": 126,
+      "tokens_per_second": 23.0,
+      "error": null
+    },
+    {
+      "id": "6e0a3842",
+      "ttft_ms": 85.02,
+      "tpot_ms": 42.94,
+      "total_ms": 5324.15,
+      "completion_tokens": 123,
+      "tokens_per_second": 23.1,
+      "error": null
+    },
+    {
+      "id": "7330dcfd",
+      "ttft_ms": 177.03,
+      "tpot_ms": 42.44,
+      "total_ms": 5396.88,
+      "completion_tokens": 124,
+      "tokens_per_second": 22.98,
+      "error": null
+    },
+    {
+      "id": "32391e93",
+      "ttft_ms": 89.81,
+      "tpot_ms": 42.18,
+      "total_ms": 5320.42,
+      "completion_tokens": 125,
+      "tokens_per_second": 23.49,
+      "error": null
+    },
+    {
+      "id": "31699b79",
+      "ttft_ms": 102.9,
+      "tpot_ms": 42.02,
+      "total_ms": 5355.48,
+      "completion_tokens": 126,
+      "tokens_per_second": 23.53,
+      "error": null
+    }
+  ]
+}

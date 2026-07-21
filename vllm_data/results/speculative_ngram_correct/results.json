@@ -1,0 +1,125 @@
+{
+  "experiment_name": "speculative_ngram_correct",
+  "config": {
+    "experiment_name": "speculative_ngram_correct",
+    "description": "N-gram + 标准答案 Prompt: c≈0 + 极端确定性 (seqs=2, gpu=0.80, max-len=512)",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "vllm_args": {
+      "max-model-len": 512,
+      "gpu-memory-utilization": 0.8,
+      "max-num-seqs": 2,
+      "enforce-eager": true,
+      "compilation-config": {
+        "mode": "NONE"
+      },
+      "enable-prefix-caching": false,
+      "enable-chunked-prefill": false,
+      "speculative-config": {
+        "method": "ngram",
+        "num_speculative_tokens": 3
+      }
+    }
+  },
+  "summary": {
+    "num_requests": 10,
+    "num_success": 10,
+    "num_errors": 0,
+    "avg_ttft_ms": 59.49,
+    "avg_tpot_ms": 44.34,
+    "p50_ttft_ms": 52.47,
+    "p95_ttft_ms": 117.38,
+    "avg_throughput_tps": 22.47
+  },
+  "per_request": [
+    {
+      "id": "5cd1ceea",
+      "ttft_ms": 52.13,
+      "tpot_ms": 44.95,
+      "total_ms": 5716.12,
+      "completion_tokens": 127,
+      "tokens_per_second": 22.22,
+      "error": null
+    },
+    {
+      "id": "8b8f617b",
+      "ttft_ms": 51.25,
+      "tpot_ms": 43.94,
+      "total_ms": 5368.57,
+      "completion_tokens": 122,
+      "tokens_per_second": 22.72,
+      "error": null
+    },
+    {
+      "id": "1f090156",
+      "ttft_ms": 50.83,
+      "tpot_ms": 43.57,
+      "total_ms": 5279.03,
+      "completion_tokens": 121,
+      "tokens_per_second": 22.92,
+      "error": null
+    },
+    {
+      "id": "6c3d4259",
+      "ttft_ms": 53.2,
+      "tpot_ms": 45.26,
+      "total_ms": 5665.43,
+      "completion_tokens": 125,
+      "tokens_per_second": 22.06,
+      "error": null
+    },
+    {
+      "id": "ba816bbb",
+      "ttft_ms": 50.7,
+      "tpot_ms": 44.06,
+      "total_ms": 5602.98,
+      "completion_tokens": 127,
+      "tokens_per_second": 22.67,
+      "error": null
+    },
+    {
+      "id": "a2a9f9c6",
+      "ttft_ms": 52.47,
+      "tpot_ms": 44.34,
+      "total_ms": 5684.29,
+      "completion_tokens": 128,
+      "tokens_per_second": 22.52,
+      "error": null
+    },
+    {
+      "id": "57887be0",
+      "ttft_ms": 58.11,
+      "tpot_ms": 44.21,
+      "total_ms": 5540.35,
+      "completion_tokens": 125,
+      "tokens_per_second": 22.56,
+      "error": null
+    },
+    {
+      "id": "62b035ae",
+      "ttft_ms": 50.72,
+      "tpot_ms": 43.32,
+      "total_ms": 5379.24,
+      "completion_tokens": 124,
+      "tokens_per_second": 23.05,
+      "error": null
+    },
+    {
+      "id": "cf18880e",
+      "ttft_ms": 58.12,
+      "tpot_ms": 45.27,
+      "total_ms": 4627.83,
+      "completion_tokens": 101,
+      "tokens_per_second": 21.82,
+      "error": null
+    },
+    {
+      "id": "acb54b53",
+      "ttft_ms": 117.38,
+      "tpot_ms": 44.43,
+      "total_ms": 5093.2,
+      "completion_tokens": 113,
+      "tokens_per_second": 22.19,
+      "error": null
+    }
+  ]
+}
